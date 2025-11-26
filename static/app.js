@@ -229,7 +229,11 @@ async function initializeApp() {
     try {
         // Загружаем профиль пользователя
         const profileData = await apiRequest(API_ENDPOINTS.profile);
-        currentUser = profileData;
+        // Объединяем данные пользователя и профиля
+        currentUser = {
+            ...profileData.user,
+            ...profileData.profile
+        };
 
         // Показываем основной интерфейс
         document.getElementById('authModal').classList.add('hidden');
@@ -301,7 +305,9 @@ function updateUserInfo() {
     if (currentUser.grade) profileInfo += ` | Класс: ${currentUser.grade}`;
     
     if (profileCountry) profileCountry.textContent = profileInfo;
-    if (profileInitial) profileInitial.textContent = currentUser.username.charAt(0).toUpperCase();
+    if (profileInitial && currentUser.username) {
+        profileInitial.textContent = currentUser.username.charAt(0).toUpperCase();
+    }
     if (profileIndex) profileIndex.textContent = currentUser.al_khwarizmi_index;
     if (profileRank) profileRank.textContent = currentUser.rank_title;
     if (profileDivision) profileDivision.textContent = currentUser.division;
@@ -447,8 +453,13 @@ async function handleProfileSave(e) {
             }),
         });
         
-        // Обновляем текущие данные пользователя
-        currentUser = data;
+        // Обновляем текущие данные пользователя (объединяем с существующими)
+        // data содержит вложенную структуру {user: {...}, ...profile fields}
+        currentUser = {
+            ...currentUser,
+            ...(data.user || {}),  // Данные пользователя из вложенного объекта
+            ...data                 // Данные профиля
+        };
         updateUserInfo();
         
         messageEl.textContent = '✅ Профиль успешно обновлен!';
