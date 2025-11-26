@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 from .models import Profile
 
 
@@ -19,6 +20,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     rank_title = serializers.ReadOnlyField()
     recommended_difficulty = serializers.ReadOnlyField()
     grade_display = serializers.ReadOnlyField()
+    is_profile_complete = serializers.ReadOnlyField()
     
     class Meta:
         model = Profile
@@ -26,7 +28,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'id', 'user', 'user_type', 'age', 'grade', 'school', 'city', 'country',
             'al_khwarizmi_index', 'total_solved_problems', 'total_arena_points',
             'division', 'rank_title', 'recommended_difficulty', 'grade_display',
-            'created_at', 'updated_at'
+            'is_profile_complete', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'al_khwarizmi_index', 'total_solved_problems',
@@ -112,6 +114,18 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Пользователь с таким email уже существует.")
         return value
     
+    def _generate_unique_username(self, desired_username: str) -> str:
+        """Создает уникальный username, добавляя числовой суффикс при необходимости"""
+        base_username = slugify(desired_username) or 'user'
+        unique_username = base_username
+        counter = 1
+
+        while User.objects.filter(username=unique_username).exists():
+            unique_username = f"{base_username}_{counter}"
+            counter += 1
+
+        return unique_username
+
     def create(self, validated_data):
         """Создание пользователя и профиля"""
         # Извлекаем поля профиля с значениями по умолчанию
@@ -124,7 +138,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             'city': validated_data.pop('city', ''),
         }
         validated_data.pop('password2')
-        
+
+        # Обеспечиваем уникальность username (акцент на email)
+        desired_username = validated_data.get('username') or ''
+        validated_data['username'] = self._generate_unique_username(desired_username)
+
         # Создаем пользователя
         user = User.objects.create_user(
             username=validated_data['username'],

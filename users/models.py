@@ -205,6 +205,19 @@ class Profile(models.Model):
             return f'{self.age} лет'
         return 'Не указано'
     
+    @property
+    def is_profile_complete(self):
+        """Проверка заполненности профиля"""
+        # Обязательные поля: user_type, age, country
+        if not self.user_type or not self.age or not self.country:
+            return False
+        
+        # Для студентов обязателен класс
+        if self.user_type == 'student' and not self.grade:
+            return False
+        
+        return True
+    
     def update_index(self, problem_difficulty, is_correct):
         """
         Обновляет индекс пользователя по ELO-подобному алгоритму.

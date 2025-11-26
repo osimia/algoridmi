@@ -23,7 +23,17 @@ def generate_problem(request):
     - topic_id (optional): ID конкретной темы
     """
     user = request.user
-    user_index = user.profile.al_khwarizmi_index
+    profile = user.profile
+    
+    # Проверяем заполненность профиля
+    if not profile.is_profile_complete:
+        return Response({
+            'error': 'Профиль не заполнен',
+            'message': 'Пожалуйста, заполните профиль перед решением задач',
+            'profile_incomplete': True
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    user_index = profile.al_khwarizmi_index
     
     # Диапазон сложности: [Index - 100, Index + 50]
     min_difficulty = max(0, user_index - 100)

@@ -469,6 +469,13 @@ async function handleProfileSave(e) {
 // Problem Functions
 async function loadNewProblem() {
     const container = document.getElementById('problemContainer');
+    
+    // Проверяем заполненность профиля
+    if (!isProfileComplete()) {
+        showProfileIncompleteMessage(container);
+        return;
+    }
+    
     container.innerHTML = '<div class="text-center text-slate-500">🤖 ИИ генерирует задачу специально для вас...</div>';
 
     try {
@@ -501,7 +508,70 @@ async function loadNewProblem() {
 
         renderMath();
     } catch (error) {
-        container.innerHTML = `<div class="text-center text-red-500">❌ Ошибка загрузки задачи: ${error.message}<br><small class="text-slate-500">Проверьте настройку GEMINI_API_KEY</small></div>`;
+        // Проверяем, не связана ли ошибка с незаполненным профилем
+        if (error.message.includes('Профиль не заполнен') || error.message.includes('profile_incomplete')) {
+            showProfileIncompleteMessage(container);
+        } else {
+            container.innerHTML = `<div class="text-center text-red-500">❌ Ошибка загрузки задачи: ${error.message}<br><small class="text-slate-500">Проверьте настройку GEMINI_API_KEY</small></div>`;
+        }
+    }
+}
+
+// Проверка заполненности профиля
+function isProfileComplete() {
+    if (!currentUser) return false;
+    
+    // Проверяем обязательные поля
+    if (!currentUser.user_type || !currentUser.age || !currentUser.country) {
+        return false;
+    }
+    
+    // Для студентов обязателен класс
+    if (currentUser.user_type === 'student' && !currentUser.grade) {
+        return false;
+    }
+    
+    return true;
+}
+
+// Показать сообщение о незаполненном профиле
+function showProfileIncompleteMessage(container) {
+    container.innerHTML = `
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Профиль не заполнен</h3>
+                    <p class="text-yellow-700 mb-4">
+                        Для решения задач необходимо заполнить профиль. Пожалуйста, укажите:
+                    </p>
+                    <ul class="list-disc list-inside text-yellow-700 mb-4 space-y-1">
+                        <li>Тип пользователя</li>
+                        <li>Возраст</li>
+                        <li>Страну</li>
+                        ${currentUser && currentUser.user_type === 'student' ? '<li>Класс (для учеников)</li>' : ''}
+                    </ul>
+                    <button 
+                        onclick="switchToProfile()" 
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
+                    >
+                        👤 Перейти к профилю
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Переключиться на вкладку профиля
+function switchToProfile() {
+    const profileTab = document.querySelector('[data-tab="tab-profile"]');
+    if (profileTab) {
+        profileTab.click();
     }
 }
 
@@ -891,3 +961,4 @@ window.loadNewProblem = loadNewProblem;
 window.submitAnswer = submitAnswer;
 window.toggleHelp = toggleHelp;
 window.displayFileName = displayFileName;
+window.switchToProfile = switchToProfile;

@@ -35,6 +35,15 @@ def generate_problem_ai(request):
     user = request.user
     # Получаем профиль пользователя
     profile = user.profile
+    
+    # Проверяем заполненность профиля
+    if not profile.is_profile_complete:
+        return Response({
+            'error': 'Профиль не заполнен',
+            'message': 'Пожалуйста, заполните профиль перед решением задач',
+            'profile_incomplete': True
+        }, status=status.HTTP_403_FORBIDDEN)
+    
     user_index = profile.al_khwarizmi_index
     
     # Используем рекомендуемую сложность на основе класса/возраста
