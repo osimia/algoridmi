@@ -6,6 +6,7 @@ const API_ENDPOINTS = {
     login: `${API_BASE_URL}/api/auth/login/`,
     logout: `${API_BASE_URL}/api/auth/logout/`,
     profile: `${API_BASE_URL}/api/user/profile/`,
+    profileUpdate: `${API_BASE_URL}/api/user/profile-detail/`,
     progress: `${API_BASE_URL}/api/user/progress/`,
     // Gemini AI endpoints (основные)
     generateProblemAI: `${API_BASE_URL}/api/problems/generate-ai/`,
@@ -434,7 +435,7 @@ async function handleProfileSave(e) {
     }
     
     try {
-        const data = await apiRequest(API_ENDPOINTS.profile, {
+        const data = await apiRequest(API_ENDPOINTS.profileUpdate, {
             method: 'PUT',
             body: JSON.stringify({
                 user_type,
