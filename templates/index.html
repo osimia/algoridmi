@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <!-- Экран загрузки -->
+    {% include 'components/loading_screen.html' %}
+    
+    <!-- Модальное окно аутентификации -->
+    {% include 'components/auth_modal.html' %}
+
+    <!-- Навигация -->
+    {% include 'components/navbar.html' %}
+
+    <!-- Основной контент -->
+    <main id="mainContent" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+        
+        <!-- Дашборд -->
+        {% include 'pages/dashboard.html' %}
+
+        <!-- Арена -->
+        {% include 'pages/arena.html' %}
+
+        <!-- Профиль -->
+        {% include 'pages/profile.html' %}
+
+    </main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Показать/скрыть поле "Класс" в зависимости от типа пользователя (в профиле)
+    document.getElementById('profileUserType')?.addEventListener('change', function() {
+        const gradeContainer = document.getElementById('profileGradeContainer');
+        const gradeSelect = document.getElementById('profileGrade');
+        
+        if (this.value === 'student') {
+            gradeContainer.style.display = 'block';
+        } else {
+            gradeContainer.style.display = 'none';
+            gradeSelect.value = '';
+        }
+    });
+</script>
+{% endblock %}

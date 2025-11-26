@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дашборд Платформы Ал Хоразми</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX CSS и JS для профессионального отображения формул -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" 
+          crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" 
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" 
+            crossorigin="anonymous"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+        }
+        .division-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .division-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -4px rgba(59, 130, 246, 0.1);
+        }
+        .tab-content {
+            min-height: 400px;
+        }
+        .nav-link.active {
+            color: #3b82f6;
+            border-bottom-width: 3px;
+            border-color: #3b82f6;
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .progress-bar-container {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #22c55e;
+        }
+        .katex-display {
+            margin-top: 0.5em !important;
+            margin-bottom: 0.5em !important;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Аутентификация: Модальное Окно -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-[100] transition-opacity duration-300">
+        <div class="card w-full max-w-md mx-4 p-8">
+            <h2 id="authTitle" class="text-2xl font-bold text-slate-800 mb-6 text-center">Вход в Ал Хоразми</h2>
+            <div id="authFormContent">
+                
+                <!-- Форма Входа (Login) -->
+                <form id="loginForm" class="space-y-4">
+                    <input type="email" id="loginEmail" placeholder="Электронная почта (любая для демо)" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <input type="password" id="loginPassword" placeholder="Пароль (любой для демо)" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <button type="submit" class="w-full btn-primary">Войти</button>
+                    <p class="text-sm text-center text-slate-600">
+                        Нет аккаунта? <button type="button" class="text-blue-600 hover:text-blue-800 font-medium" onclick="toggleAuthView('register')">Зарегистрироваться</button>
+                    </p>
+                </form>
+
+                <!-- Форма Регистрации (Register) -->
+                <form id="registerForm" class="space-y-4 hidden">
+                    <input type="email" id="registerEmail" placeholder="Электронная почта (любая для демо)" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <input type="password" id="registerPassword" placeholder="Пароль (любой, минимум 6 символов)" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    
+                    <!-- Дропдаун для Страны -->
+                    <select id="countrySelect" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-slate-600">
+                        <option value="" disabled selected>Выберите вашу страну</option>
+                        <!-- Опции заполняются JS -->
+                    </select>
+
+                    <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-semibold transition-colors">Зарегистрироваться</button>
+                    <p class="text-sm text-center text-slate-600">
+                        Уже есть аккаунт? <button type="button" class="text-blue-600 hover:text-blue-800 font-medium" onclick="toggleAuthView('login')">Войти</button>
+                    </p>
+                </form>
+            </div>
+            <!-- Область для сообщений об ошибках/успехе -->
+            <p id="authMessage" class="mt-4 text-center text-sm font-medium"></p>
+        </div>
+    </div>
+
+
+    <!-- Навигация (Скрыта до аутентификации) -->
+    <nav id="navbar" class="bg-white sticky top-0 z-50 shadow-md hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="text-3xl font-bold text-blue-600">📐 Ал Хоразми</span>
+                </div>
+                <div class="flex space-x-6">
+                    <button class="nav-link font-medium transition duration-150 active" data-tab="tab-dashboard">Дашборд</button>
+                    <button class="nav-link font-medium transition duration-150" data-tab="tab-arena">Арена</button>
+                    <button class="nav-link font-medium transition duration-150" data-tab="tab-profile">Профиль</button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userInfo" class="text-sm text-slate-500"></span>
+                    <button class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-sm font-semibold transition-colors" onclick="handleSignOut()">Выход</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной Контейнер Контента (Скрыт до аутентификации) -->
+    <main id="mainContent" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+        
+        <!-- Контент 1: Дашборд -->
+        <div id="tab-dashboard" class="tab-content">
+            <h1 class="text-2xl font-bold text-slate-800 mb-6">Алгебраический Путь (Агент Ал Хоразми)</h1>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Колонка слева: Текущая Задача (Лаборатория Задач) -->
+                <div class="lg:col-span-2 card">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">Лаборатория Задач: Текущая Задача</h2>
+                    <p class="text-sm text-slate-500 mb-4">Задача сгенерирована ИИ специально для вашего уровня сложности.</p>
+                    
+                    <!-- Имитация Задачи (Теперь с крупным, книжным форматом формулы) -->
+                    <div class="bg-blue-50 p-6 rounded-lg mb-6 border-l-4 border-blue-400">
+                        <h3 class="text-lg font-semibold text-blue-800 mb-3">Задача №: 4578-ИИ</h3>
+                        <p class="text-slate-700 mb-4">
+                            Дано уравнение:
+                            <!-- Формула в книжном (Display Math) формате -->
+                            <div class="text-center my-4 text-xl font-mono">
+                                $$\sqrt{3x + 1} = x - 1$$
+                            </div>
+                            Найдите сумму квадратов корней уравнения, которые удовлетворяют условию $x > 0$.
+                        </p>
+                        <p class="text-sm text-slate-500">Тема: Иррациональные уравнения. Сложность: 6/10.</p>
+                    </div>
+
+                    <!-- Форма Ввода Ответа и Помощь -->
+                    <div class="flex flex-col gap-4">
+                        <div class="flex flex-col sm:flex-row gap-4 items-center">
+                            <input type="text" id="answerInput" placeholder="Введите конечный ответ..." class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                            <input type="file" id="photoSolutionInput" accept="image/*" class="hidden" onchange="displayFileName()">
+                            <div class="flex gap-4 flex-shrink-0">
+                                <button class="bg-indigo-500 hover:bg-indigo-600 text-white p-3 rounded-lg font-semibold transition-colors flex items-center justify-center text-sm" onclick="document.getElementById('photoSolutionInput').click()">
+                                    📷 Фото Решения
+                                </button>
+                                <button class="btn-primary" onclick="checkSolution()">Проверить</button>
+                            </div>
+                            <button id="helpBtn" class="bg-amber-500 hover:bg-amber-600 text-white p-3 rounded-lg font-semibold transition-colors flex-shrink-0 text-sm" onclick="toggleHelp()">
+                                💡 Помощь
+                            </button>
+                        </div>
+                        <p id="fileNameDisplay" class="text-sm text-slate-500 hidden">
+                            Файл выбран: <span class="font-medium text-slate-700"></span>
+                        </p>
+                    </div>
+
+                    <!-- Контекстный Учебник (Скрытый по умолчанию) -->
+                    <div id="helpContent" class="hidden mt-6 bg-yellow-50 p-6 rounded-lg border-l-4 border-yellow-400">
+                        <h3 class="text-lg font-bold text-amber-800 mb-3">Микро-Урок от Агента Ал Хоразми: Как решать иррациональные уравнения?</h3>
+                        <p class="text-slate-700 mb-4">
+                            Ваша последняя попытка указывает на ошибку в возведении обеих частей в квадрат. Помните:
+                        </p>
+                        <ul class="list-disc list-inside text-slate-600 ml-4 space-y-2">
+                            <li>**Правило 1 (Устранение корня):** Возводите в квадрат **обе части** уравнения, а не только ту, что с корнем.</li>
+                            <li>**Правило 2 (Область допустимых значений):** Не забывайте про условия, чтобы корень был определен ($3x+1 \ge 0$) и правая часть была неотрицательна ($x-1 \ge 0$).</li>
+                        </ul>
+                        <div class="mt-4">
+                            <span class="text-sm text-slate-500">Изучите это, прежде чем вернуться к задаче.</span>
+                        </div>
+                    </div>
+
+                    <!-- Фидбек (Скрытый по умолчанию) -->
+                    <p id="feedback" class="mt-4 font-semibold hidden"></p>
+
+                    <!-- Детальное Объяснение Решения (Появляется после успешной проверки) -->
+                    <div id="solutionExplanation" class="hidden mt-6 card p-6 border-l-4" style="background-color: #f0fdf4; border-color: #4ade80;">
+                        <h3 class="text-xl font-bold text-green-800 mb-4" id="explanationTitle"></h3>
+                        <div id="explanationContent" class="text-slate-700 space-y-3">
+                        </div>
+                        <p class="mt-4 text-sm font-semibold text-green-700" id="pointsEarned"></p>
+                    </div>
+                </div>
+
+                <!-- Колонка справа: Прогресс и Индекс -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- Карточка Прогресса -->
+                    <div class="card">
+                        <h3 class="text-xl font-bold text-slate-700 mb-4">Ваш Прогресс</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm text-slate-600 mb-1">
+                                    <span>Алгебра: Иррациональные уравнения</span>
+                                    <span>70%</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" style="width: 70%; background-color: #3b82f6;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm text-slate-600 mb-1">
+                                    <span>Теория Чисел: Сравнение по модулю</span>
+                                    <span>45%</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" style="width: 45%; background-color: #f97316;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm text-slate-600 mb-1">
+                                    <span>Геометрия: Вписанные углы</span>
+                                    <span>92%</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" style="width: 92%; background-color: #22c55e;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка Индекса Ал Хоразми -->
+                    <div class="card bg-blue-50">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">Индекс Ал Хоразми</h3>
+                        <p class="text-4xl font-extrabold text-blue-600 mb-3">1520</p>
+                        <p class="text-sm text-slate-600">
+                            Ваш индекс отражает ваш текущий уровень и определяет сложность генерируемых задач и ваш дивизион на Арене.
+                        </p>
+                        <div class="mt-3 flex justify-between text-xs text-slate-500">
+                            <span>Требуется для "Магистра": 1800</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Контент 2: Арена -->
+        <div id="tab-arena" class="tab-content hidden">
+            <h1 class="text-2xl font-bold text-slate-800 mb-6">Арена Ал Хоразми: Соревнования и Рейтинг</h1>
+            <div class="card mb-8">
+                <h2 class="text-xl font-bold text-slate-700 mb-3">Ваш Дивизион: Лига Евклида</h2>
+                <p class="text-sm text-slate-500 mb-4">Вы соревнуетесь с игроками с Индексом от 501 до 1550.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-4 bg-yellow-50 rounded-lg text-center border border-yellow-300">
+                        <p class="text-xl font-bold text-yellow-700">#47</p>
+                        <p class="text-sm text-slate-600">Ваше место на этой неделе</p>
+                    </div>
+                    <div class="p-4 bg-slate-100 rounded-lg text-center border border-slate-300">
+                        <p class="text-xl font-bold text-slate-700">🏆 3</p>
+                        <p class="text-sm text-slate-600">Всего Кубков Дивизиона</p>
+                    </div>
+                    <div class="p-4 bg-slate-100 rounded-lg text-center border border-slate-300">
+                        <p class="text-xl font-bold text-slate-700">🥇 8</p>
+                        <p class="text-sm text-slate-600">Всего Золотых Медалей</p>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold text-slate-700 mb-4">Система Дивизионов</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="division-card card p-6 bg-slate-100 text-center">
+                    <p class="text-2xl mb-2">⭐</p>
+                    <h3 class="font-bold text-slate-800">Лига Новичков</h3>
+                    <p class="text-sm text-slate-500">Индекс: 100 - 500</p>
+                </div>
+                <div class="division-card card p-6 bg-blue-100 text-center border-blue-400 border-2">
+                    <p class="text-2xl mb-2">🏆</p>
+                    <h3 class="font-bold text-blue-800">Лига Евклида (Вы Здесь)</h3>
+                    <p class="text-sm text-slate-500">Индекс: 501 - 1550</p>
+                </div>
+                <div class="division-card card p-6 bg-slate-100 text-center">
+                    <p class="text-2xl mb-2">🧠</p>
+                    <h3 class="font-bold text-slate-800">Лига Эйнштейна</h3>
+                    <p class="text-sm text-slate-500">Индекс: 1551+</p>
+                </div>
+            </div>
+            
+            <h2 class="text-xl font-bold text-slate-700 mt-10 mb-4">Топ-10 Лиги Евклида (Неделя 42)</h2>
+            <div class="card overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Место</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Имя</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Индекс</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Очки</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200 text-sm">
+                        <tr><td class="px-6 py-4 whitespace-nowrap font-bold">1</td><td class="px-6 py-4 whitespace-nowrap">Иван Д.</td><td class="px-6 py-4 whitespace-nowrap">1545</td><td class="px-6 py-4 whitespace-nowrap">4500</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap font-bold">2</td><td class="px-6 py-4 whitespace-nowrap">Мария К.</td><td class="px-6 py-4 whitespace-nowrap">1538</td><td class="px-6 py-4 whitespace-nowrap">4480</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap font-bold">3</td><td class="px-6 py-4 whitespace-nowrap">User 10294</td><td class="px-6 py-4 whitespace-nowrap">1531</td><td class="px-6 py-4 whitespace-nowrap">4300</td></tr>
+                        <tr class="bg-blue-50 font-semibold"><td class="px-6 py-4 whitespace-nowrap">47</td><td class="px-6 py-4 whitespace-nowrap">Артём (Вы)</td><td class="px-6 py-4 whitespace-nowrap">1520</td><td class="px-6 py-4 whitespace-nowrap">2150</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Контент 3: Профиль (Обновлен для отображения страны) -->
+        <div id="tab-profile" class="tab-content hidden">
+            <h1 class="text-2xl font-bold text-slate-800 mb-6">Профиль Пользователя</h1>
+            <div class="card max-w-xl mx-auto text-center">
+                <div class="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-3xl font-bold text-white mx-auto mb-4" id="profileInitial">A</div>
+                <h3 class="text-xl font-bold text-slate-800" id="profileEmail"></h3>
+                <p class="text-slate-600 mb-4" id="profileCountry"></p>
+                <div class="grid grid-cols-3 gap-4 border-t pt-4">
+                    <div><p class="text-2xl font-bold text-blue-600">300+</p><p class="text-sm text-slate-500">Решено Задач</p></div>
+                    <div><p class="text-2xl font-bold text-blue-600">Магистр</p><p class="text-sm text-slate-500">Звание</p></div>
+                    <div><p class="text-2xl font-bold text-blue-600">12ч</p><p class="text-sm text-slate-500">Общее время</p></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="module">
+        // --- FIREBASE ИМПОРТЫ ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app;
+        let db;
+        let auth;
+        let currentUserId = null;
+        let currentUserData = {};
+
+        // --- СПИСОК СТРАН ДЛЯ РЕГИСТРАЦИИ ---
+        const countries = [
+            { code: 'RU', name: 'Россия' },
+            { code: 'KZ', name: 'Казахстан' },
+            { code: 'UZ', name: 'Узбекистан' },
+            { code: 'KG', name: 'Кыргызстан' },
+            { code: 'TJ', name: 'Таджикистан' },
+            { code: 'UA', name: 'Украина' },
+            { code: 'BY', name: 'Беларусь' },
+            { code: 'AZ', name: 'Азербайджан' },
+        ];
+        
+        // --- УТИЛИТЫ FIREBASE ---
+        const getUserProfileRef = (userId) => {
+            // Приватный путь для данных пользователя
+            return doc(db, 'artifacts', appId, 'users', userId, 'user_profiles', 'profile_data');
+        };
+
+        // Функция для обновления сообщения в форме аутентификации
+        const setAuthMessage = (message, isError = false) => {
+            const msgElement = document.getElementById('authMessage');
+            msgElement.textContent = message;
+            msgElement.className = `mt-4 text-center text-sm font-medium ${isError ? 'text-red-500' : 'text-green-500'}`;
+        };
+
+        // --- АУТЕНТИФИКАЦИЯ ---
+
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase configuration is missing.");
+                    setAuthMessage("Ошибка инициализации: отсутствует конфигурация Firebase.", true);
+                    return;
+                }
+                
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // 1. Попытка входа с токеном или анонимный вход
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // 2. Слушатель изменения состояния аутентификации
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        if (user.email) {
+                            await fetchUserProfile(user);
+                        } else {
+                            // Анонимный вход (для стартового режима или после ошибки)
+                            currentUserData = { 
+                                email: `Гость-${user.uid.substring(0, 4)}@demo.com`, 
+                                country: 'Демонстрационный режим' 
+                            };
+                        }
+                        updateUI(true); // Пользователь активен, показываем дашборд
+                    } else {
+                        // Пользователь вышел
+                        currentUserId = null;
+                        currentUserData = {};
+                        updateUI(false); // Пользователь вышел, показываем модальное окно
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error initializing Firebase:", error.code, error.message);
+                setAuthMessage("Критическая ошибка инициализации. См. консоль.", true);
+            }
+        }
+        
+        async function fetchUserProfile(user) {
+            try {
+                const docRef = getUserProfileRef(user.uid);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    currentUserData = docSnap.data();
+                    currentUserData.email = user.email;
+                } else {
+                    // Если пользователь вошел по почте, но данных нет
+                    currentUserData = { email: user.email, country: 'Не указана' };
+                }
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+                currentUserData = { email: user.email, country: 'Не указана (ошибка загрузки)' };
+            }
+        }
+
+        async function handleSignUp(e) {
+            e.preventDefault();
+            setAuthMessage('Регистрация...');
+            
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const country = document.getElementById('countrySelect').value;
+
+            if (!country) {
+                setAuthMessage("Пожалуйста, выберите вашу страну.", true);
+                return;
+            }
+
+            try {
+                // 1. Создание пользователя
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 2. Сохранение данных профиля в Firestore
+                const profileData = {
+                    country: country,
+                    createdAt: new Date().toISOString()
+                };
+                await setDoc(getUserProfileRef(user.uid), profileData);
+
+                setAuthMessage('Успешная регистрация! Выполняется вход...', false);
+                // onAuthStateChanged сам обновит UI
+            } catch (error) {
+                console.error("Registration Error Code:", error.code);
+                console.error("Registration Error:", error);
+                let message = "Ошибка регистрации. Проверьте консоль для детального кода ошибки.";
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    message = "Этот адрес уже используется.";
+                } else if (error.code === 'auth/weak-password') {
+                    message = "Пароль должен быть не менее 6 символов.";
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    // ЛОГИКА ДЕМО: Вход по Email/Паролю отключен -> переключаемся на анонимный вход
+                    message = "Регистрация отключена. Выполняется анонимный вход для демонстрации...";
+                    setAuthMessage(message, true);
+                    await signInAnonymously(auth); 
+                    return; // onAuthStateChanged закроет модальное окно
+                }
+                setAuthMessage(message, true);
+            }
+        }
+
+        async function handleSignIn(e) {
+            e.preventDefault();
+            setAuthMessage('Вход...');
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                setAuthMessage('Успешный вход! Загрузка дашборда...', false);
+                // onAuthStateChanged сам обновит UI
+            } catch (error) {
+                console.error("Login Error Code:", error.code);
+                console.error("Login Error:", error);
+                let message = "Ошибка входа. Проверьте почту и пароль.";
+                
+                if (error.code === 'auth/invalid-email' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    message = "Неверная электронная почта или пароль.";
+                } else if (error.code === 'auth/operation-not-allowed') {
+                     // ЛОГИКА ДЕМО: Вход по Email/Паролю отключен -> переключаемся на анонимный вход
+                    message = "Вход по Email/Паролю отключен. Выполняется анонимный вход для демонстрации...";
+                    setAuthMessage(message, true);
+                    await signInAnonymously(auth); 
+                    return; // onAuthStateChanged закроет модальное окно
+                }
+                setAuthMessage(message, true);
+            }
+        }
+
+        async function handleSignOut() {
+            try {
+                await signOut(auth);
+                // onAuthStateChanged сам обновит UI
+            } catch (error) {
+                console.error("Sign Out Error:", error);
+            }
+        }
+        
+        // --- УПРАВЛЕНИЕ UI ---
+
+        function fillCountryDropdown() {
+            const select = document.getElementById('countrySelect');
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.code;
+                option.textContent = country.name;
+                select.appendChild(option);
+            });
+        }
+
+        function toggleAuthView(view) {
+            document.getElementById('loginForm').classList.toggle('hidden', view === 'register');
+            document.getElementById('registerForm').classList.toggle('hidden', view === 'login');
+            document.getElementById('authTitle').textContent = view === 'register' ? 'Регистрация' : 'Вход в Ал Хоразми';
+            setAuthMessage('');
+        }
+
+        function updateUI(isAuthenticated) {
+            const authModal = document.getElementById('authModal');
+            const navbar = document.getElementById('navbar');
+            const mainContent = document.getElementById('mainContent');
+            const userInfo = document.getElementById('userInfo');
+            const profileEmail = document.getElementById('profileEmail');
+            const profileCountry = document.getElementById('profileCountry');
+            const profileInitial = document.getElementById('profileInitial');
+
+
+            if (isAuthenticated) {
+                // Пользователь АКТИВЕН (либо настоящий, либо анонимный)
+                authModal.classList.add('hidden');
+                navbar.classList.remove('hidden');
+                mainContent.classList.remove('hidden');
+                
+                const user = auth.currentUser;
+
+                // Определяем отображаемое имя и страну
+                let displayName = currentUserData.email || 'Гость (Анонимно)';
+                
+                // Проверяем, это ли демонстрационный режим
+                const isDemoMode = displayName.startsWith('Гость-') || !user.email;
+                
+                let userCountryName;
+                if (isDemoMode) {
+                    userCountryName = 'Демонстрационный режим';
+                    userInfo.textContent = `Режим Демонстрации | ID: ${user.uid.substring(0, 8)}`;
+                } else {
+                    userCountryName = (currentUserData.country && user.email) 
+                        ? (countries.find(c => c.code === currentUserData.country)?.name || currentUserData.country) 
+                        : 'Неизвестно';
+                    userInfo.textContent = `Пользователь: ${displayName.split('@')[0]} | Страна: ${userCountryName}`;
+                }
+
+                
+                // Обновление профиля
+                profileEmail.textContent = displayName;
+                profileCountry.textContent = `Страна: ${userCountryName}`;
+                profileInitial.textContent = displayName.charAt(0).toUpperCase();
+
+            } else {
+                // Пользователь вышел (Logged out)
+                authModal.classList.remove('hidden');
+                navbar.classList.add('hidden');
+                mainContent.classList.add('hidden');
+                // Устанавливаем сообщение о демонстрационном режиме
+                setAuthMessage("Введите любой логин/пароль для входа в демонстрационный режим.", false);
+            }
+            
+            // Запуск рендеринга формул после отображения контента
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, { 
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true }, 
+                        { left: '$', right: '$', display: false }
+                    ] 
+                });
+            }
+        }
+        
+        // --- ОСНОВНАЯ ЛОГИКА ДАШБОРДА ---
+
+        function toggleHelp() {
+            const helpContent = document.getElementById('helpContent');
+            const helpBtn = document.getElementById('helpBtn');
+            const isHidden = helpContent.classList.toggle('hidden');
+            helpBtn.textContent = isHidden ? '💡 Помощь' : 'Скрыть Урок';
+        }
+
+        function displayFileName() {
+            const input = document.getElementById('photoSolutionInput');
+            const display = document.getElementById('fileNameDisplay');
+            const fileNameSpan = display.querySelector('span');
+
+            if (input.files.length > 0) {
+                fileNameSpan.textContent = input.files[0].name;
+                display.classList.remove('hidden');
+            } else {
+                display.classList.add('hidden');
+            }
+        }
+
+        function showDetailedSolution(isCorrect, isPhotoCheck) {
+            const expDiv = document.getElementById('solutionExplanation');
+            const expTitle = document.getElementById('explanationTitle');
+            const expContent = document.getElementById('explanationContent');
+            const pointsEarned = document.getElementById('pointsEarned');
+
+            expDiv.classList.remove('hidden');
+            
+            const detailedSteps = `
+                <h4 class="font-semibold text-slate-800">Пошаговое Решение:</h4>
+                <ol class="list-decimal list-inside ml-4 space-y-2">
+                    <li>**Ограничения (ОДЗ):** Необходимо, чтобы подкоренное выражение было неотрицательным ($3x + 1 \\ge 0 \\Rightarrow x \\ge -1/3$) и правая часть была неотрицательна ($x - 1 \\ge 0 \\Rightarrow x \\ge 1$). Общее условие: $x \\ge 1$.</li>
+                    <li>**Возведение в квадрат:** Возводим обе части уравнения в квадрат: $$3x + 1 = (x - 1)^2$$ $$3x + 1 = x^2 - 2x + 1$$</li>
+                    <li>**Квадратное уравнение:** Переносим все в одну сторону: $$x^2 - 5x = 0$$ $$x(x - 5) = 0$$</li>
+                    <li>**Корни:** Находим два потенциальных корня: $x_1 = 0$ и $x_2 = 5$.</li>
+                    <li>**Проверка по ОДЗ:**
+                        <ul>
+                            <li>$x_1 = 0$: Не удовлетворяет условию $x \\ge 1$. Отбрасываем.</li>
+                            <li>$x_2 = 5$: Удовлетворяет условию $x \\ge 1$. Принимаем.</li>
+                        </ul>
+                    </li>
+                    <li>**Финальный Ответ:** Единственный корень, удовлетворяющий условию $x > 0$ (и ОДЗ), это $x=5$. Задача просит сумму квадратов корней, удовлетворяющих условию $x > 0$. Сумма квадратов: $$5^2 = 25$$</li>
+                </ol>
+            `;
+
+            if (isCorrect) {
+                expTitle.textContent = "✅ Решение Верно! Разбор Агента Ал Хоразми:";
+                expContent.innerHTML = detailedSteps;
+                pointsEarned.textContent = isPhotoCheck 
+                    ? 'Начислено 250 Квантов за полный анализ вашего рукописного решения!' 
+                    : 'Начислено 150 Квантов за верный ответ.';
+                expDiv.style.backgroundColor = '#f0fdf4'; 
+                expDiv.style.borderColor = '#4ade80';
+            } else {
+                expTitle.textContent = "❌ Обнаружена Ошибка в Решении:";
+                expContent.innerHTML = isPhotoCheck 
+                    ? `<p class="text-red-700">Агент Ал Хоразми проанализировал ваше рукописное решение и обнаружил, что вы верно нашли корни $x=0$ и $x=5$, но **забыли проверить условие $x \\ge 1$** (ОДЗ). Из-за этого вы включили ложный корень $x=0$.</p>` + detailedSteps
+                    : `<p class="text-red-700">Конечный ответ неверно. Агент Ал Хоразми предоставил детальный разбор ниже.</p>` + detailedSteps;
+                pointsEarned.textContent = 'Кванты не начислены.';
+                expDiv.style.style.backgroundColor = '#fef2f2'; 
+                expDiv.style.borderColor = '#f87171';
+            }
+            
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(expContent, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "$", right: "$", display: false }
+                    ]
+                });
+            }
+        }
+
+        async function checkSolution() {
+            const answerInput = document.getElementById('answerInput');
+            const photoInput = document.getElementById('photoSolutionInput');
+            const feedback = document.getElementById('feedback');
+            const explanation = document.getElementById('solutionExplanation');
+            const answer = answerInput.value.trim();
+            const CORRECT_ANSWER = '25';
+
+            feedback.classList.remove('hidden');
+            feedback.classList.remove('text-green-600', 'text-red-600', 'text-slate-500', 'text-blue-600');
+            explanation.classList.add('hidden');
+
+            const isPhotoCheck = photoInput.files.length > 0;
+            
+            if (isPhotoCheck) {
+                feedback.textContent = '⏳ Агент Ал Хоразми анализирует ваше рукописное решение (это может занять 1-2 секунды)...';
+                feedback.classList.add('text-blue-600');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const simulatedResult = (answer === CORRECT_ANSWER || answer === '');
+                
+                if (simulatedResult) {
+                    feedback.textContent = `✅ Ваше рукописное решение и ответ ВЕРНЫ!`;
+                    feedback.className = 'mt-4 font-semibold text-green-600';
+                    showDetailedSolution(true, true);
+                } else {
+                    feedback.textContent = '❌ Агент Ал Хоразми проанализировал ваше решение. Ошибка допущена на шаге с проверкой Области Допустимых Значений (ОДЗ). Смотрите детальный разбор.';
+                    feedback.className = 'mt-4 font-semibold text-red-600';
+                    showDetailedSolution(false, true);
+                }
+                answerInput.value = '';
+                photoInput.value = null; 
+                document.getElementById('fileNameDisplay').classList.add('hidden');
+            } else if (answer !== '') {
+                feedback.textContent = '⏳ Проверка конечного ответа...';
+                feedback.classList.add('text-blue-600');
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                if (answer === CORRECT_ANSWER) {
+                    feedback.textContent = '✅ Поздравляем! Верное решение.';
+                    feedback.className = 'mt-4 font-semibold text-green-600';
+                    showDetailedSolution(true, false);
+                } else {
+                    feedback.textContent = '❌ Неверно. Агент Ал Хоразми предоставил детальный разбор ниже.';
+                    feedback.className = 'mt-4 font-semibold text-red-600';
+                    showDetailedSolution(false, false);
+                }
+                answerInput.value = '';
+            } else {
+                feedback.textContent = 'Введите конечный ответ ИЛИ загрузите фото решения!';
+                feedback.classList.remove('text-blue-600');
+                feedback.classList.add('text-slate-500');
+            }
+        }
+        
+        // --- ИНИЦИАЛИЗАЦИЯ ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const navButtons = document.querySelectorAll('.nav-link');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            function showTab(tabId) {
+                tabContents.forEach(content => { content.classList.add('hidden'); });
+                document.getElementById(tabId).classList.remove('hidden');
+            }
+
+            function setActiveButton(button) {
+                navButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+            }
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.getAttribute('data-tab');
+                    showTab(tabId);
+                    setActiveButton(button);
+                });
+            });
+
+            // Настройка форм аутентификации
+            document.getElementById('registerForm').addEventListener('submit', handleSignUp);
+            document.getElementById('loginForm').addEventListener('submit', handleSignIn);
+
+            // Заполнение дропдауна стран
+            fillCountryDropdown();
+
+            // Инициализация Firebase
+            initializeFirebase();
+
+            // Показать дашборд по умолчанию (для первого входа)
+            showTab('tab-dashboard');
+            const firstButton = document.querySelector('[data-tab="tab-dashboard"]');
+            if (firstButton) setActiveButton(firstButton);
+        });
+        
+        // Делаем функции глобальными, чтобы они работали из inline-обработчиков
+        window.toggleHelp = toggleHelp;
+        window.displayFileName = displayFileName;
+        window.checkSolution = checkSolution;
+        window.toggleAuthView = toggleAuthView;
+        window.handleSignOut = handleSignOut;
+    </script>
+</body>
+</html>

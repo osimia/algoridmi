@@ -1,0 +1,20 @@
+<!-- Навигация -->
+<nav id="navbar" class="bg-white sticky top-0 z-50 shadow-md hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex-shrink-0 flex items-center gap-3">
+                <img src="/static/images/logo.png" alt="Algoritmi" class="h-12 w-12">
+                <span class="text-2xl font-bold text-blue-600">Algoritmi</span>
+            </div>
+            <div class="flex space-x-6">
+                <button class="nav-link font-medium transition duration-150 active" data-tab="tab-dashboard">📝 Задачи</button>
+                <button class="nav-link font-medium transition duration-150" data-tab="tab-arena">🏆 Рейтинг</button>
+                <button class="nav-link font-medium transition duration-150" data-tab="tab-profile">👤 Профиль</button>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="userInfo" class="text-sm text-slate-500"></span>
+                <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors" onclick="handleLogout()">Выход</button>
+            </div>
+        </div>
+    </div>
+</nav>

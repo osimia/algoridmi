@@ -1,0 +1,128 @@
+<!-- Справка по Арене (можно добавить в модальное окно) -->
+<div class="card max-w-4xl mx-auto p-6">
+    <h2 class="text-2xl font-bold text-slate-800 mb-6">🏆 Как работает Арена?</h2>
+    
+    <!-- Дивизионы -->
+    <div class="mb-8">
+        <h3 class="text-xl font-semibold text-slate-700 mb-4">📊 Дивизионы</h3>
+        <div class="space-y-4">
+            <!-- Новички -->
+            <div class="p-4 bg-gray-100 rounded-lg border-l-4 border-gray-400">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h4 class="font-bold text-lg">Лига Новичков (NOVICE)</h4>
+                        <p class="text-sm text-slate-600">Индекс: 0 - 499</p>
+                    </div>
+                    <span class="text-3xl">🌱</span>
+                </div>
+            </div>
+            
+            <!-- Евклид -->
+            <div class="p-4 bg-blue-100 rounded-lg border-l-4 border-blue-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h4 class="font-bold text-lg">Лига Евклида (EUCLID)</h4>
+                        <p class="text-sm text-slate-600">Индекс: 500 - 1549</p>
+                        <p class="text-xs text-blue-600 font-semibold mt-1">⭐ Вы здесь!</p>
+                    </div>
+                    <span class="text-3xl">📐</span>
+                </div>
+            </div>
+            
+            <!-- Эйнштейн -->
+            <div class="p-4 bg-purple-100 rounded-lg border-l-4 border-purple-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h4 class="font-bold text-lg">Лига Эйнштейна (EINSTEIN)</h4>
+                        <p class="text-sm text-slate-600">Индекс: 1550+</p>
+                    </div>
+                    <span class="text-3xl">🧠</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Разница между Индексом и Очками -->
+    <div class="mb-8">
+        <h3 class="text-xl font-semibold text-slate-700 mb-4">🎯 Индекс vs Очки</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Индекс -->
+            <div class="p-5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                <div class="flex items-center mb-3">
+                    <span class="text-3xl mr-3">📈</span>
+                    <h4 class="text-lg font-bold text-blue-800">Индекс Ал Хоразми</h4>
+                </div>
+                <ul class="space-y-2 text-sm text-slate-700">
+                    <li>✅ <strong>Постоянный</strong> рейтинг</li>
+                    <li>✅ Определяет <strong>дивизион</strong></li>
+                    <li>✅ Растет/падает при решении</li>
+                    <li>✅ <strong>Не сбрасывается</strong></li>
+                    <li class="text-blue-600 font-semibold pt-2">Ваш: 1027</li>
+                </ul>
+            </div>
+            
+            <!-- Очки -->
+            <div class="p-5 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+                <div class="flex items-center mb-3">
+                    <span class="text-3xl mr-3">💰</span>
+                    <h4 class="text-lg font-bold text-green-800">Очки (Weekly Score)</h4>
+                </div>
+                <ul class="space-y-2 text-sm text-slate-700">
+                    <li>🎮 <strong>Еженедельные</strong> баллы</li>
+                    <li>🎮 Определяют <strong>место</strong> в турнире</li>
+                    <li>🎮 +150 за правильный ответ</li>
+                    <li>🎮 <strong>Сбрасываются</strong> каждую неделю</li>
+                    <li class="text-green-600 font-semibold pt-2">Ваши: 450</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Награды -->
+    <div class="mb-8">
+        <h3 class="text-xl font-semibold text-slate-700 mb-4">🏅 Еженедельные награды</h3>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-400">
+                <div class="text-4xl mb-2">🥇</div>
+                <div class="font-bold text-yellow-700">1 место</div>
+                <div class="text-xs text-slate-600">Кубок + Медаль</div>
+            </div>
+            <div class="text-center p-4 bg-gray-100 rounded-lg border-2 border-gray-400">
+                <div class="text-4xl mb-2">🥈</div>
+                <div class="font-bold text-gray-600">2 место</div>
+                <div class="text-xs text-slate-600">Медаль</div>
+            </div>
+            <div class="text-center p-4 bg-orange-50 rounded-lg border-2 border-orange-400">
+                <div class="text-4xl mb-2">🥉</div>
+                <div class="font-bold text-orange-600">3 место</div>
+                <div class="text-xs text-slate-600">Медаль</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Пример -->
+    <div class="p-5 bg-slate-50 rounded-lg border border-slate-200">
+        <h3 class="text-lg font-semibold text-slate-700 mb-3">💡 Пример:</h3>
+        <div class="space-y-2 text-sm">
+            <p>🎯 <strong>Правильный ответ на задачу (сложность 854):</strong></p>
+            <div class="ml-6 space-y-1">
+                <p>• Индекс: 1000 → 1009 <span class="text-green-600 font-semibold">(+9)</span></p>
+                <p>• Очки: 0 → 150 <span class="text-green-600 font-semibold">(+150)</span></p>
+                <p>• Дивизион: EUCLID (не изменился)</p>
+            </div>
+            <p class="mt-3">❌ <strong>Неправильный ответ:</strong></p>
+            <div class="ml-6 space-y-1">
+                <p>• Индекс: 1000 → 995 <span class="text-red-600 font-semibold">(-5)</span></p>
+                <p>• Очки: 0 → 0 <span class="text-slate-500">(без изменений)</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+        <p class="text-sm text-slate-700">
+            <strong>💡 Совет:</strong> Чтобы перейти в Лигу Эйнштейна, вам нужно набрать индекс <strong>1550</strong>. 
+            Сейчас у вас <strong>1027</strong>, осталось набрать <strong>523</strong> индекса (примерно 58 задач).
+        </p>
+    </div>
+</div>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algoritmi - Математическое Образование</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX для рендеринга математических формул -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+        }
+        
+        .division-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .division-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -4px rgba(59, 130, 246, 0.1);
+        }
+        
+        .tab-content {
+            min-height: 400px;
+        }
+        
+        .nav-link.active {
+            color: #3b82f6;
+            border-bottom-width: 3px;
+            border-color: #3b82f6;
+        }
+        
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        
+        .progress-bar-container {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #22c55e;
+            transition: width 0.3s ease;
+        }
+        
+        .katex-display {
+            margin-top: 0.5em !important;
+            margin-bottom: 0.5em !important;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Правильный перенос текста в контейнере задачи */
+        #problemContainer,
+        #problemContainer * {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+        }
+        
+        #problemContainer p,
+        #problemContainer h3,
+        #problemContainer div {
+            max-width: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Модальное окно аутентификации -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-[100] transition-opacity duration-300">
+        <div class="card w-full max-w-md mx-4 p-8 fade-in">
+            <div class="text-center mb-6">
+                <img src="/static/images/logo.png" alt="Algoritmi" class="h-20 w-20 mx-auto mb-3">
+                <h1 class="text-3xl font-bold text-blue-600 mb-2">Algoritmi</h1>
+                <p class="text-slate-600">Образовательная платформа по математике</p>
+            </div>
+            
+            <h2 id="authTitle" class="text-2xl font-bold text-slate-800 mb-6 text-center">Вход</h2>
+            
+            <div id="authFormContent">
+                <!-- Форма входа -->
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required 
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Пароль</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required 
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button type="submit" class="w-full btn-primary">
+                        <span id="loginBtnText">Войти</span>
+                    </button>
+                    <p class="text-sm text-center text-slate-600">
+                        Нет аккаунта? <button type="button" class="text-blue-600 hover:text-blue-800 font-medium" onclick="toggleAuthView('register')">Зарегистрироваться</button>
+                    </p>
+                </form>
+
+                <!-- Форма регистрации (упрощенная) -->
+                <form id="registerForm" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Имя пользователя</label>
+                        <input type="text" id="registerUsername" placeholder="username" required 
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <input type="email" id="registerEmail" placeholder="your@email.com" required 
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Пароль</label>
+                        <input type="password" id="registerPassword" placeholder="Минимум 6 символов" required 
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Подтверждение пароля</label>
+                        <input type="password" id="registerPassword2" placeholder="Повторите пароль" required 
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-semibold transition-colors">
+                        <span id="registerBtnText">Зарегистрироваться</span>
+                    </button>
+                    <p class="text-sm text-center text-slate-600">
+                        Уже есть аккаунт? <button type="button" class="text-blue-600 hover:text-blue-800 font-medium" onclick="toggleAuthView('login')">Войти</button>
+                    </p>
+                </form>
+            </div>
+            
+            <!-- Сообщения -->
+            <p id="authMessage" class="mt-4 text-center text-sm font-medium"></p>
+        </div>
+    </div>
+
+    <!-- Навигация -->
+    <nav id="navbar" class="bg-white sticky top-0 z-50 shadow-md hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center gap-3">
+                    <img src="/static/images/logo.png" alt="Algoritmi" class="h-12 w-12">
+                    <span class="text-2xl font-bold text-blue-600">Algoritmi</span>
+                </div>
+                <div class="flex space-x-6">
+                    <button class="nav-link font-medium transition duration-150 active" data-tab="tab-dashboard">📝 Задачи</button>
+                    <button class="nav-link font-medium transition duration-150" data-tab="tab-arena">🏆 Рейтинг</button>
+                    <button class="nav-link font-medium transition duration-150" data-tab="tab-profile">👤 Профиль</button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userInfo" class="text-sm text-slate-500"></span>
+                    <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors" onclick="handleLogout()">Выход</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main id="mainContent" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+        
+        <!-- Дашборд -->
+        <div id="tab-dashboard" class="tab-content">
+            <h1 class="text-3xl font-bold text-slate-800 mb-6">Лаборатория Задач</h1>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Текущая задача -->
+                <div class="lg:col-span-2 card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-slate-700">Текущая Задача</h2>
+                        <button onclick="loadNewProblem()" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                            🔄 Новая задача
+                        </button>
+                    </div>
+                    
+                    <div id="problemContainer" class="bg-blue-50 p-6 rounded-lg mb-6 border-l-4 border-blue-400 break-words overflow-hidden">
+                        <div class="text-center text-slate-500">Загрузка задачи...</div>
+                    </div>
+
+                    <!-- Форма ответа -->
+                    <div class="flex flex-col gap-4">
+                        <div class="flex flex-col sm:flex-row gap-4 items-center">
+                            <input type="text" id="answerInput" placeholder="Введите ответ..." 
+                                   class="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <input type="file" id="photoSolutionInput" accept="image/*" class="hidden" onchange="displayFileName()">
+                            <div class="flex gap-4 flex-shrink-0">
+                                <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors text-sm" 
+                                        onclick="document.getElementById('photoSolutionInput').click()">
+                                    📷 Фото
+                                </button>
+                                <button class="btn-primary" onclick="submitAnswer()">
+                                    <span id="submitBtnText">Проверить</span>
+                                </button>
+                            </div>
+                            <button id="helpBtn" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors text-sm" 
+                                    onclick="toggleHelp()">
+                                💡 Помощь
+                            </button>
+                        </div>
+                        <p id="fileNameDisplay" class="text-sm text-slate-500 hidden">
+                            Файл: <span class="font-medium text-slate-700"></span>
+                        </p>
+                    </div>
+
+                    <!-- Подсказки -->
+                    <div id="helpContent" class="hidden mt-6 bg-yellow-50 p-6 rounded-lg border-l-4 border-yellow-400 fade-in">
+                        <h3 class="text-lg font-bold text-amber-800 mb-3">💡 Подсказки:</h3>
+                        <div id="hintsContainer"></div>
+                    </div>
+
+                    <!-- Фидбек -->
+                    <p id="feedback" class="mt-4 font-semibold hidden"></p>
+
+                    <!-- Решение -->
+                    <div id="solutionExplanation" class="hidden mt-6 card p-6 border-l-4 fade-in">
+                        <h3 class="text-xl font-bold mb-4" id="explanationTitle"></h3>
+                        <div id="explanationContent" class="text-slate-700 space-y-3"></div>
+                        <p class="mt-4 text-sm font-semibold" id="pointsEarned"></p>
+                    </div>
+                </div>
+
+                <!-- Прогресс и индекс -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- Индекс -->
+                    <div class="card bg-gradient-to-br from-blue-50 to-blue-100">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">Индекс Algoritmi</h3>
+                        <p class="text-5xl font-extrabold text-blue-600 mb-3" id="userIndex">1000</p>
+                        <p class="text-sm text-slate-600" id="userDivision">Лига Евклида</p>
+                        <p class="text-xs text-slate-500 mt-2" id="indexInfo"></p>
+                    </div>
+
+                    <!-- Прогресс -->
+                    <div class="card">
+                        <h3 class="text-xl font-bold text-slate-700 mb-4">Ваш Прогресс</h3>
+                        <div id="progressContainer" class="space-y-4">
+                            <div class="text-center text-slate-500">Загрузка...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Арена -->
+        <div id="tab-arena" class="tab-content hidden">
+            <h1 class="text-3xl font-bold text-slate-800 mb-6">Арена: Соревнования</h1>
+            
+            <div class="card mb-8">
+                <h2 class="text-xl font-bold text-slate-700 mb-3">Ваш Дивизион</h2>
+                <p class="text-2xl font-bold text-blue-600 mb-4" id="arenaDivision">Загрузка...</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="arenaStats">
+                    <!-- Статистика загружается динамически -->
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold text-slate-700 mb-4">Таблица Лидеров</h2>
+            <div class="card overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Место</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Игрок</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Индекс</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Очки</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody" class="bg-white divide-y divide-slate-200 text-sm">
+                        <tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Профиль -->
+        <div id="tab-profile" class="tab-content hidden">
+            <h1 class="text-3xl font-bold text-slate-800 mb-6">Профиль Пользователя</h1>
+            
+            <!-- Информация о пользователе -->
+            <div class="card max-w-xl mx-auto text-center mb-6">
+                <div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-4xl font-bold text-white mx-auto mb-4" 
+                     id="profileInitial">A</div>
+                <h3 class="text-2xl font-bold text-slate-800" id="profileUsername">Пользователь</h3>
+                <p class="text-slate-600 mb-2" id="profileEmail">email@example.com</p>
+                <p class="text-slate-600 mb-6" id="profileCountry">Страна</p>
+                <div class="grid grid-cols-3 gap-4 border-t pt-6">
+                    <div>
+                        <p class="text-3xl font-bold text-blue-600" id="profileSolved">0</p>
+                        <p class="text-sm text-slate-500">Решено задач</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-blue-600" id="profileRank">Новичок</p>
+                        <p class="text-sm text-slate-500">Звание</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-blue-600" id="profileIndex">1000</p>
+                        <p class="text-sm text-slate-500">Индекс</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Форма редактирования профиля -->
+            <div class="card max-w-2xl mx-auto">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">✏️ Редактировать профиль</h2>
+                <form id="profileEditForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Тип пользователя</label>
+                            <select id="profileUserType" required 
+                                    class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700">
+                                <option value="student">Ученик</option>
+                                <option value="teacher">Учитель</option>
+                                <option value="university">Студент</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Возраст</label>
+                            <input type="number" id="profileAge" placeholder="Ваш возраст" required min="5" max="100"
+                                   class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div id="profileGradeContainer">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Класс (для учеников)</label>
+                        <select id="profileGrade"
+                                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700">
+                            <option value="">Не указано</option>
+                            <option value="1">1 класс</option>
+                            <option value="2">2 класс</option>
+                            <option value="3">3 класс</option>
+                            <option value="4">4 класс</option>
+                            <option value="5">5 класс</option>
+                            <option value="6">6 класс</option>
+                            <option value="7">7 класс</option>
+                            <option value="8">8 класс</option>
+                            <option value="9">9 класс</option>
+                            <option value="10">10 класс</option>
+                            <option value="11">11 класс</option>
+                            <option value="12">12 класс / Выпускник</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Школа/Университет</label>
+                        <input type="text" id="profileSchool" placeholder="Название учебного заведения"
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Город</label>
+                            <input type="text" id="profileCity" placeholder="Ваш город"
+                                   class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Страна</label>
+                            <select id="profileCountrySelect" required 
+                                    class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700">
+                                <option value="RU">Россия</option>
+                                <option value="KZ">Казахстан</option>
+                                <option value="UZ">Узбекистан</option>
+                                <option value="KG">Кыргызстан</option>
+                                <option value="TJ">Таджикистан</option>
+                                <option value="UA">Украина</option>
+                                <option value="BY">Беларусь</option>
+                                <option value="AZ">Азербайджан</option>
+                                <option value="OTHER">Другая</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full btn-primary">
+                        <span id="profileSaveBtnText">💾 Сохранить изменения</span>
+                    </button>
+                    
+                    <p id="profileMessage" class="text-center text-sm font-medium"></p>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="/static/app.js?v=2.8"></script>
+    <script>
+        // Показать/скрыть поле "Класс" в зависимости от типа пользователя (в профиле)
+        document.getElementById('profileUserType')?.addEventListener('change', function() {
+            const gradeContainer = document.getElementById('profileGradeContainer');
+            const gradeSelect = document.getElementById('profileGrade');
+            
+            if (this.value === 'student') {
+                gradeContainer.style.display = 'block';
+            } else {
+                gradeContainer.style.display = 'none';
+                gradeSelect.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
