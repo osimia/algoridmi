@@ -207,11 +207,12 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Добавляем Railway домены из ALLOWED_HOSTS
-if not DEBUG:
-    # Для продакшена добавляем все разрешенные хосты в CSRF_TRUSTED_ORIGINS
-    for host in ALLOWED_HOSTS:
-        if host and host != '*':
-            CSRF_TRUSTED_ORIGINS.append(f'https://{host}')
+for host in ALLOWED_HOSTS:
+    if host and host != '*' and host not in ['localhost', '127.0.0.1']:
+        # Добавляем с https для продакшена
+        https_origin = f'https://{host.strip()}'
+        if https_origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(https_origin)
 
 CSRF_COOKIE_HTTPONLY = False  # Чтобы JavaScript мог читать
 CSRF_COOKIE_SAMESITE = 'Lax'
