@@ -105,3 +105,69 @@ class ArenaRank(models.Model):
         ).count()
         self.rank = better_count + 1
         self.save(update_fields=['rank'])
+    
+    @classmethod
+    def update_all_ranks(cls):
+        """Обновляет места всех игроков в каждом дивизионе"""
+        for division, _ in cls.DIVISION_CHOICES:
+            # Получаем всех игроков дивизиона, отсортированных по очкам
+            players = cls.objects.filter(
+                current_division=division
+            ).order_by('-weekly_score', '-current_index')
+            
+            # Присваиваем места
+            for position, player in enumerate(players, start=1):
+                if player.rank != position:
+                    player.rank = position
+                    player.save(update_fields=['rank'])
+    
+    @classmethod
+    def end_week_tournament(cls):
+        """
+        Завершает недельный турнир:
+        1. Раздает награды топ-3 игрокам в каждом дивизионе
+        2. Сбрасывает недельные очки
+        3. Сохраняет общий рейтинг (индекс)
+        """
+        from django.utils import timezone
+        
+        awards_given = []
+        
+        for division, division_name in cls.DIVISION_CHOICES:
+            # Получаем топ-3 игроков дивизиона
+            top_players = cls.objects.filter(
+                current_division=division,
+                weekly_score__gt=0  # Только те, кто играл
+            ).order_by('-weekly_score', '-current_index')[:3]
+            
+            for position, player in enumerate(top_players, start=1):
+                if position == 1:
+                    # 1 место - золотая медаль + кубок
+                    player.total_medals += 1
+                    player.total_cups += 1
+                    award = "🥇 Золотая медаль + 🏆 Кубок"
+                elif position == 2:
+                    # 2 место - серебряная медаль
+                    player.total_medals += 1
+                    award = "🥈 Серебряная медаль"
+                elif position == 3:
+                    # 3 место - бронзовая медаль
+                    player.total_medals += 1
+                    award = "🥉 Бронзовая медаль"
+                
+                player.save(update_fields=['total_medals', 'total_cups'])
+                awards_given.append({
+                    'user': player.user.username,
+                    'division': division_name,
+                    'position': position,
+                    'award': award,
+                    'weekly_score': player.weekly_score
+                })
+        
+        # Сбрасываем недельные очки для всех
+        cls.objects.all().update(weekly_score=0, rank=0)
+        
+        # Обновляем места заново
+        cls.update_all_ranks()
+        
+        return awards_given

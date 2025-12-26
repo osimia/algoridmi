@@ -38,22 +38,27 @@ def leaderboard(request):
             )
             division = arena_rank.current_division
     
-    # Получаем топ игроков дивизиона
+    # Получаем топ игроков дивизиона (сортировка по очкам, затем по индексу)
     leaderboard_query = ArenaRank.objects.filter(
         current_division=division
-    ).select_related('user').order_by('rank', '-weekly_score')[:limit]
+    ).select_related('user').order_by('-weekly_score', '-current_index')[:limit]
     
     # Получаем информацию о текущем пользователе
     user_rank = None
     if hasattr(user, 'arena_rank'):
         user_rank = ArenaRankSerializer(user.arena_rank).data
     
-    # Сериализуем данные
+    # Сериализуем данные и добавляем правильные места
     serializer = ArenaRankSerializer(leaderboard_query, many=True)
+    leaderboard_data = serializer.data
+    
+    # Присваиваем правильные места (1, 2, 3, 4...)
+    for position, player in enumerate(leaderboard_data, start=1):
+        player['rank'] = position
     
     return Response({
         'division': division,
-        'leaderboard': serializer.data,
+        'leaderboard': leaderboard_data,
         'user_rank': user_rank
     }, status=status.HTTP_200_OK)
 

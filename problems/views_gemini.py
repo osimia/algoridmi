@@ -13,6 +13,7 @@ from django.core.cache import cache
 import random
 from .models import UserAttempt, Topic
 from core.gemini_service import get_gemini_service
+from core.math_topics_database import get_random_topic_for_grade, get_topic_by_difficulty
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -20,6 +21,42 @@ logger = logging.getLogger(__name__)
 # Thread pool для параллельной генерации задач
 # max_workers=5 означает максимум 5 одновременных генераций
 executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix="GeminiGen")
+
+
+def _get_difficulty_level(score):
+    """Определяет уровень сложности по баллам"""
+    if score <= 300:
+        return "Начальный"
+    elif score <= 600:
+        return "Легкий"
+    elif score <= 900:
+        return "Средний"
+    elif score <= 1200:
+        return "Выше среднего"
+    elif score <= 1500:
+        return "Сложный"
+    elif score <= 2000:
+        return "Очень сложный"
+    else:
+        return "Экспертный"
+
+
+def _get_estimated_time(score):
+    """Определяет примерное время решения в минутах"""
+    if score <= 300:
+        return "2-3 минуты"
+    elif score <= 600:
+        return "3-5 минут"
+    elif score <= 900:
+        return "5-8 минут"
+    elif score <= 1200:
+        return "8-12 минут"
+    elif score <= 1500:
+        return "12-15 минут"
+    elif score <= 2000:
+        return "15-20 минут"
+    else:
+        return "20+ минут"
 
 
 @api_view(['GET'])
@@ -54,31 +91,32 @@ def generate_problem_ai(request):
     max_difficulty = min(3000, recommended_diff + 150)
     target_difficulty = recommended_diff
     
-    # Получаем тему
+    # Получаем тему из базы данных 1010+ тем
     topic_param = request.query_params.get('topic')
     
     if topic_param:
         topic_name = topic_param
     else:
-        # Выбираем подходящую тему в зависимости от класса
-        if profile.grade and profile.grade <= 6:
-            # Для 5-6 класса - только базовые темы
-            suitable_topics = [
-                "Арифметика: Дроби",
-                "Арифметика: Проценты",
-                "Алгебра: Простые уравнения",
-                "Геометрия: Площади фигур",
-                "Арифметика: Задачи на движение"
-            ]
-            topic_name = random.choice(suitable_topics)
-        else:
-            # Для старших классов - любые темы из БД
-            topics = list(Topic.objects.all())
-            if topics:
-                topic = random.choice(topics)
-                topic_name = topic.name
+        # Используем базу данных из 1010+ тем
+        # Выбираем тему по классу и сложности
+        if profile.grade:
+            topic_obj = get_random_topic_for_grade(profile.grade)
+            if topic_obj:
+                topic_name = f"{topic_obj['category']}: {topic_obj['topic']}"
+                # Корректируем сложность на основе темы
+                target_difficulty = (topic_obj['difficulty_min'] + topic_obj['difficulty_max']) // 2
+                logger.info(f"📚 Выбрана тема из базы: {topic_name} | Сложность: {target_difficulty}")
             else:
-                topic_name = "Алгебра: Общие задачи"
+                # Fallback на старую систему
+                topic_name = "Математика: Общие задачи"
+        else:
+            # Если класс не указан, выбираем по сложности
+            topic_obj = get_topic_by_difficulty(target_difficulty)
+            if topic_obj:
+                topic_name = f"{topic_obj['category']}: {topic_obj['topic']}"
+                logger.info(f"📚 Выбрана тема по сложности: {topic_name}")
+            else:
+                topic_name = "Математика: Общие задачи"
     
     # Логируем запрос
     logger.info(f"📝 Запрос генерации задачи | Пользователь: {user.username} (ID: {user.id}) | Тема: {topic_name} | Сложность: {target_difficulty}")
@@ -112,22 +150,35 @@ def generate_problem_ai(request):
             }, status=status.HTTP_408_REQUEST_TIMEOUT)
         
         # Сохраняем задачу в кеше для последующей проверки
-        # Ключ: user_id + timestamp
-        cache_key = f"problem_{user.id}_{problem_data.get('title', 'temp')}"
+        # Ключ: user_id + timestamp (без кириллицы для совместимости с memcached)
+        import hashlib
+        title_hash = hashlib.md5(problem_data.get('title', 'temp').encode()).hexdigest()[:8]
+        cache_key = f"problem_{user.id}_{title_hash}"
         cache.set(cache_key, problem_data, timeout=3600)  # 1 час
         
-        # Возвращаем задачу без правильного ответа
+        # Возвращаем задачу БЕЗ правильного ответа и БЕЗ формулы решения
+        # Используем плоскую структуру для совместимости с фронтендом
+        problem_text = problem_data.get('problem_text') or problem_data.get('description') or problem_data.get('title', 'Задача генерируется...')
+        
+        # Получаем уравнение, если есть
+        equation = problem_data.get('equation_to_solve', '') or ''
+        
+        problem_response = {
+            'id': cache_key,
+            'topic_name': topic_name,
+            'title': problem_data['title'],
+            'description': problem_text,
+            'difficulty_score': problem_data['difficulty_score'],
+            'hints': problem_data.get('hints', []),
+            'generated_by_ai': True
+        }
+        
+        # Добавляем latex_formula только если есть уравнение
+        if equation and equation.strip():
+            problem_response['latex_formula'] = equation
+        
         response_data = {
-            'problem': {
-                'id': cache_key,  # Используем cache_key как ID
-                'topic_name': topic_name,
-                'title': problem_data['title'],
-                'latex_formula': problem_data['latex_formula'],
-                'description': problem_data['description'],
-                'difficulty_score': problem_data['difficulty_score'],
-                'hints': problem_data.get('hints', []),
-                'generated_by_ai': True
-            },
+            'problem': problem_response,
             'user_index': user_index,
             'difficulty_range': {
                 'min': min_difficulty,
@@ -276,7 +327,6 @@ def submit_answer_ai(request):
             'correct_answer': problem_data['correct_answer'],
             'solution_steps': problem_data.get('solution_steps', []),
             'ai_feedback': check_result.get('feedback', ''),
-            'ai_explanation': check_result.get('explanation', ''),
             'confidence': confidence,
             'attempt_id': attempt.id
         }
