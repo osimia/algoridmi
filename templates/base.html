@@ -2,8 +2,26 @@
 <html lang="ru" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}Algoritmi - Математическое Образование{% endblock %}</title>
+    
+    <!-- PWA манифест -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Мета-теги для мобильных устройств -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Algoritmi">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="description" content="Платформа для изучения математики с AI-помощником">
+    
+    <!-- Иконки для iOS -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/icon-192x192.png">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- KaTeX для рендеринга математических формул -->
@@ -18,6 +36,45 @@
     {% block content %}{% endblock %}
     
     <script src="/static/app.js?v=3.2"></script>
+    
+    <!-- Регистрация Service Worker для PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker зарегистрирован:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('❌ Ошибка регистрации Service Worker:', error);
+                    });
+            });
+        }
+        
+        // Обработка установки PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Показываем кнопку установки (можно добавить в UI)
+            console.log('💡 Приложение можно установить на устройство');
+        });
+        
+        // Функция для установки приложения (можно вызвать из UI)
+        window.installApp = function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('✅ Пользователь установил приложение');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        };
+    </script>
+    
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

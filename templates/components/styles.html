@@ -33,6 +33,15 @@
         border-color: #3b82f6;
     }
     
+    .mobile-nav-link.active {
+        background-color: #eff6ff;
+        color: #3b82f6;
+    }
+    
+    .mobile-nav-link:hover {
+        background-color: #f1f5f9;
+    }
+    
     .btn-primary {
         background-color: #3b82f6;
         color: white;
@@ -101,5 +110,240 @@
     #problemContainer div {
         max-width: 100%;
         overflow: hidden;
+    }
+    
+    /* ========================================
+       МОБИЛЬНАЯ АДАПТАЦИЯ
+       ======================================== */
+    
+    /* Базовые настройки для мобильных устройств */
+    @media (max-width: 768px) {
+        body {
+            font-size: 14px;
+        }
+        
+        /* Карточки на мобильных */
+        .card {
+            padding: 16px;
+            border-radius: 8px;
+        }
+        
+        /* Кнопки на мобильных - больше для удобства тапа */
+        .btn-primary,
+        button {
+            min-height: 44px; /* Рекомендуемый размер для тач-интерфейса */
+            padding: 12px 16px;
+            font-size: 16px; /* Предотвращает zoom на iOS */
+        }
+        
+        /* Инпуты на мобильных */
+        input[type="text"],
+        input[type="number"],
+        input[type="email"],
+        input[type="password"],
+        textarea {
+            min-height: 44px;
+            font-size: 16px; /* Предотвращает zoom на iOS */
+            padding: 12px;
+        }
+        
+        /* Таблица лидеров на мобильных */
+        table {
+            font-size: 14px;
+        }
+        
+        table th,
+        table td {
+            padding: 8px 4px;
+        }
+        
+        /* Скрываем некоторые колонки на маленьких экранах */
+        .hide-mobile {
+            display: none;
+        }
+        
+        /* Навбар на мобильных */
+        nav {
+            padding: 12px 16px;
+        }
+        
+        /* Контейнеры на мобильных */
+        .container {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+        
+        /* Заголовки на мобильных */
+        h1 {
+            font-size: 24px;
+        }
+        
+        h2 {
+            font-size: 20px;
+        }
+        
+        h3 {
+            font-size: 18px;
+        }
+        
+        /* Модальные окна на мобильных */
+        .modal-content {
+            margin: 16px;
+            max-height: calc(100vh - 32px);
+            overflow-y: auto;
+        }
+        
+        /* Карточки дивизионов на мобильных */
+        .division-card {
+            margin-bottom: 16px;
+        }
+        
+        /* Прогресс-бары на мобильных */
+        .progress-bar-container {
+            height: 6px;
+        }
+        
+        /* Отступы на мобильных */
+        .space-y-4 > * + * {
+            margin-top: 12px;
+        }
+        
+        .space-y-6 > * + * {
+            margin-top: 16px;
+        }
+        
+        /* Grid на мобильных - 1 колонка */
+        .grid {
+            grid-template-columns: 1fr !important;
+        }
+        
+        /* Flex на мобильных - вертикальная ориентация */
+        .flex-mobile-col {
+            flex-direction: column;
+        }
+        
+        /* Математические формулы на мобильных */
+        .katex {
+            font-size: 1em;
+        }
+        
+        .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 8px 0;
+        }
+    }
+    
+    /* Очень маленькие экраны (телефоны в портретной ориентации) */
+    @media (max-width: 480px) {
+        body {
+            font-size: 13px;
+        }
+        
+        .card {
+            padding: 12px;
+        }
+        
+        h1 {
+            font-size: 20px;
+        }
+        
+        h2 {
+            font-size: 18px;
+        }
+        
+        h3 {
+            font-size: 16px;
+        }
+        
+        /* Таблицы на очень маленьких экранах */
+        table {
+            font-size: 12px;
+        }
+        
+        table th,
+        table td {
+            padding: 6px 2px;
+        }
+        
+        /* Кнопки в ряд на маленьких экранах */
+        .button-group {
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .button-group button {
+            width: 100%;
+        }
+    }
+    
+    /* Планшеты */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .container {
+            max-width: 720px;
+        }
+        
+        /* Grid на планшетах - 2 колонки */
+        .grid-tablet-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    /* Ландшафтная ориентация на мобильных */
+    @media (max-width: 768px) and (orientation: landscape) {
+        .modal-content {
+            max-height: calc(100vh - 16px);
+        }
+        
+        /* Уменьшаем отступы в ландшафте */
+        .card {
+            padding: 12px;
+        }
+    }
+    
+    /* Touch-friendly стили */
+    @media (hover: none) and (pointer: coarse) {
+        /* Увеличиваем размер кликабельных элементов */
+        a, button, .clickable {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Убираем hover эффекты на touch устройствах */
+        .division-card:hover {
+            transform: none;
+        }
+        
+        /* Активное состояние для touch */
+        button:active,
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+    }
+    
+    /* Улучшения для PWA */
+    @media (display-mode: standalone) {
+        /* Дополнительный отступ сверху для статус-бара */
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    }
+    
+    /* Скрытие элементов на мобильных */
+    @media (max-width: 768px) {
+        .desktop-only {
+            display: none !important;
+        }
+    }
+    
+    /* Скрытие элементов на десктопе */
+    @media (min-width: 769px) {
+        .mobile-only {
+            display: none !important;
+        }
     }
 </style>
