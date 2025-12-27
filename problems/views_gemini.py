@@ -11,9 +11,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.cache import cache
 import random
-from .models import UserAttempt, Topic
+from .models import UserAttempt, Topic, Problem
 from core.gemini_service import get_gemini_service
 from core.math_topics_database import get_random_topic_for_grade, get_topic_by_difficulty
+from django.db.models import Q
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -57,6 +58,58 @@ def _get_estimated_time(score):
         return "15-20 минут"
     else:
         return "20+ минут"
+
+
+def _find_unused_problem(user, difficulty, grade_level=None):
+    """
+    Ищет неиспользованную задачу из БД для пользователя
+    
+    Args:
+        user: Пользователь
+        difficulty: Целевая сложность
+        grade_level: Класс пользователя (опционально)
+    
+    Returns:
+        Problem или None если подходящих задач нет
+    """
+    # Получаем ID задач, которые пользователь уже решал
+    solved_problem_ids = UserAttempt.objects.filter(
+        user=user,
+        problem__isnull=False
+    ).values_list('problem_id', flat=True).distinct()
+    
+    # Диапазон сложности ±150 от целевой
+    min_diff = max(0, difficulty - 150)
+    max_diff = min(3000, difficulty + 150)
+    
+    # Базовый запрос - активные задачи в диапазоне сложности, которые пользователь не решал
+    query = Problem.objects.filter(
+        is_active=True,
+        difficulty_score__gte=min_diff,
+        difficulty_score__lte=max_diff
+    ).exclude(
+        id__in=solved_problem_ids
+    )
+    
+    # Если указан класс, фильтруем по нему
+    if grade_level:
+        query = query.filter(
+            Q(grade_level=grade_level) | Q(grade_level__isnull=True)
+        )
+    
+    # Сортируем: сначала менее использованные, потом ближе к целевой сложности
+    query = query.order_by('times_used', '?')  # ? для случайности среди одинаково использованных
+    
+    # Получаем первую подходящую задачу
+    problem = query.first()
+    
+    if problem:
+        # Увеличиваем счетчик использования
+        problem.times_used += 1
+        problem.save(update_fields=['times_used'])
+        logger.info(f"📚 Найдена задача из БД: {problem.title} | Использована: {problem.times_used} раз")
+    
+    return problem
 
 
 @api_view(['GET'])
@@ -121,84 +174,138 @@ def generate_problem_ai(request):
     # Логируем запрос
     logger.info(f"📝 Запрос генерации задачи | Пользователь: {user.username} (ID: {user.id}) | Тема: {topic_name} | Сложность: {target_difficulty}")
     
-    try:
-        # Получаем сервис Gemini
-        gemini = get_gemini_service()
+    # ШАГ 1: Пытаемся найти задачу в БД
+    db_problem = _find_unused_problem(user, target_difficulty, profile.grade)
+    
+    if db_problem:
+        # Задача найдена в БД - используем её
+        logger.info(f"✅ Используем задачу из БД: {db_problem.title}")
         
-        # Функция для генерации в отдельном потоке
-        def generate_task():
-            return gemini.generate_problem(
-                topic=topic_name,
-                difficulty=target_difficulty,
-                user_level=user_index,
-                user_grade=profile.grade,
-                user_age=profile.age
-            )
+        # Формируем данные задачи из БД
+        problem_data = {
+            'title': db_problem.title,
+            'problem_text': db_problem.description,
+            'description': db_problem.description,
+            'equation_to_solve': db_problem.latex_formula,
+            'correct_answer': db_problem.correct_answer,
+            'solution_steps': db_problem.solution_steps,
+            'hints': db_problem.hints,
+            'difficulty_score': db_problem.difficulty_score,
+            'from_database': True,
+            'problem_id': db_problem.id
+        }
         
-        # Запускаем генерацию в thread pool с таймаутом 30 секунд
-        logger.info(f"🔄 Отправка задачи в thread pool | Активных потоков: {executor._threads.__len__() if hasattr(executor, '_threads') else 'N/A'}")
-        future = executor.submit(generate_task)
+        # Сохраняем в кеше
+        import hashlib
+        cache_key = f"problem_{user.id}_{db_problem.id}"
+        cache.set(cache_key, problem_data, timeout=3600)
+        
+    else:
+        # ШАГ 2: Задач в БД нет - генерируем через AI
+        logger.info(f"🤖 Задач в БД не найдено, генерируем через AI")
         
         try:
-            # Ждем результат максимум 30 секунд
-            problem_data = future.result(timeout=30)
-            logger.info(f"✅ Задача получена из thread pool | Пользователь: {user.username}")
-        except FuturesTimeoutError:
-            logger.error(f"⏰ Таймаут генерации задачи (30 сек) | Пользователь: {user.username}")
+            # Получаем сервис Gemini
+            gemini = get_gemini_service()
+            
+            # Функция для генерации в отдельном потоке
+            def generate_task():
+                return gemini.generate_problem(
+                    topic=topic_name,
+                    difficulty=target_difficulty,
+                    user_level=user_index,
+                    user_grade=profile.grade,
+                    user_age=profile.age
+                )
+            
+            # Запускаем генерацию в thread pool с таймаутом 30 секунд
+            logger.info(f"🔄 Отправка задачи в thread pool | Активных потоков: {executor._threads.__len__() if hasattr(executor, '_threads') else 'N/A'}")
+            future = executor.submit(generate_task)
+            
+            try:
+                # Ждем результат максимум 30 секунд
+                problem_data = future.result(timeout=30)
+                logger.info(f"✅ Задача получена из thread pool | Пользователь: {user.username}")
+                
+                # Сохраняем сгенерированную задачу в БД для повторного использования
+                try:
+                    saved_problem = Problem.objects.create(
+                        topic=None,  # Можно добавить связь с темой позже
+                        title=problem_data['title'],
+                        latex_formula=problem_data.get('equation_to_solve', ''),
+                        description=problem_data.get('problem_text', problem_data.get('description', '')),
+                        correct_answer=problem_data['correct_answer'],
+                        difficulty_score=problem_data['difficulty_score'],
+                        solution_steps=problem_data.get('solution_steps', []),
+                        hints=problem_data.get('hints', []),
+                        grade_level=profile.grade,
+                        source='ai_generated',
+                        times_used=1,
+                        is_active=True
+                    )
+                    problem_data['problem_id'] = saved_problem.id
+                    problem_data['from_database'] = False
+                    logger.info(f"💾 Задача сохранена в БД: ID={saved_problem.id}")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка сохранения задачи в БД: {e}")
+                    problem_data['from_database'] = False
+                
+            except FuturesTimeoutError:
+                logger.error(f"⏰ Таймаут генерации задачи (30 сек) | Пользователь: {user.username}")
+                return Response({
+                    'error': 'Генерация задачи заняла слишком много времени. Попробуйте еще раз.'
+                }, status=status.HTTP_408_REQUEST_TIMEOUT)
+            
+            # Сохраняем задачу в кеше для последующей проверки
+            import hashlib
+            title_hash = hashlib.md5(problem_data.get('title', 'temp').encode()).hexdigest()[:8]
+            cache_key = f"problem_{user.id}_{title_hash}"
+            cache.set(cache_key, problem_data, timeout=3600)
+            
+        except ValueError as e:
+            logger.error(f"❌ ValueError при генерации | Пользователь: {user.username} | Ошибка: {str(e)}")
             return Response({
-                'error': 'Генерация задачи заняла слишком много времени. Попробуйте еще раз.'
-            }, status=status.HTTP_408_REQUEST_TIMEOUT)
-        
-        # Сохраняем задачу в кеше для последующей проверки
-        # Ключ: user_id + timestamp (без кириллицы для совместимости с memcached)
-        import hashlib
-        title_hash = hashlib.md5(problem_data.get('title', 'temp').encode()).hexdigest()[:8]
-        cache_key = f"problem_{user.id}_{title_hash}"
-        cache.set(cache_key, problem_data, timeout=3600)  # 1 час
-        
-        # Возвращаем задачу БЕЗ правильного ответа и БЕЗ формулы решения
-        # Используем плоскую структуру для совместимости с фронтендом
-        problem_text = problem_data.get('problem_text') or problem_data.get('description') or problem_data.get('title', 'Задача генерируется...')
-        
-        # Получаем уравнение, если есть
-        equation = problem_data.get('equation_to_solve', '') or ''
-        
-        problem_response = {
-            'id': cache_key,
-            'topic_name': topic_name,
-            'title': problem_data['title'],
-            'description': problem_text,
-            'difficulty_score': problem_data['difficulty_score'],
-            'hints': problem_data.get('hints', []),
-            'generated_by_ai': True
+                'error': f'Ошибка генерации задачи: {str(e)}',
+                'detail': 'Проверьте настройки GEMINI_API_KEY'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            logger.error(f"❌ Неожиданная ошибка при генерации | Пользователь: {user.username} | Ошибка: {str(e)}")
+            return Response({
+                'error': 'Произошла ошибка при генерации задачи',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # Возвращаем задачу БЕЗ правильного ответа и БЕЗ формулы решения
+    problem_text = problem_data.get('problem_text') or problem_data.get('description') or problem_data.get('title', 'Задача генерируется...')
+    
+    # Получаем уравнение, если есть
+    equation = problem_data.get('equation_to_solve', '') or ''
+    
+    problem_response = {
+        'id': cache_key,
+        'topic_name': topic_name,
+        'title': problem_data['title'],
+        'description': problem_text,
+        'difficulty_score': problem_data['difficulty_score'],
+        'hints': problem_data.get('hints', []),
+        'generated_by_ai': not problem_data.get('from_database', False),
+        'from_database': problem_data.get('from_database', False)
+    }
+    
+    # Добавляем latex_formula только если есть уравнение
+    if equation and equation.strip():
+        problem_response['latex_formula'] = equation
+    
+    response_data = {
+        'problem': problem_response,
+        'user_index': user_index,
+        'difficulty_range': {
+            'min': min_difficulty,
+            'max': max_difficulty
         }
-        
-        # Добавляем latex_formula только если есть уравнение
-        if equation and equation.strip():
-            problem_response['latex_formula'] = equation
-        
-        response_data = {
-            'problem': problem_response,
-            'user_index': user_index,
-            'difficulty_range': {
-                'min': min_difficulty,
-                'max': max_difficulty
-            }
-        }
-        
-        return Response(response_data, status=status.HTTP_200_OK)
-        
-    except ValueError as e:
-        logger.error(f"❌ ValueError при генерации | Пользователь: {user.username} | Ошибка: {str(e)}")
-        return Response({
-            'error': f'Ошибка генерации задачи: {str(e)}',
-            'detail': 'Проверьте настройки GEMINI_API_KEY'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    except Exception as e:
-        logger.error(f"❌ Неожиданная ошибка | Пользователь: {user.username} | Ошибка: {str(e)}")
-        return Response({
-            'error': f'Ошибка: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

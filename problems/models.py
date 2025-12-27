@@ -47,7 +47,9 @@ class Problem(models.Model):
         Topic,
         on_delete=models.CASCADE,
         related_name='problems',
-        verbose_name='Тема'
+        verbose_name='Тема',
+        null=True,
+        blank=True
     )
     
     title = models.CharField(
@@ -89,6 +91,32 @@ class Problem(models.Model):
         help_text='Список подсказок для решения'
     )
     
+    grade_level = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(12)],
+        null=True,
+        blank=True,
+        verbose_name='Класс',
+        help_text='Для какого класса предназначена задача (1-12)'
+    )
+    
+    source = models.CharField(
+        max_length=50,
+        default='ai_generated',
+        verbose_name='Источник',
+        help_text='Источник задачи (ai_generated, manual, imported)',
+        choices=[
+            ('ai_generated', 'AI сгенерирована'),
+            ('manual', 'Создана вручную'),
+            ('imported', 'Импортирована')
+        ]
+    )
+    
+    times_used = models.IntegerField(
+        default=0,
+        verbose_name='Использована раз',
+        help_text='Сколько раз задача была показана пользователям'
+    )
+    
     is_active = models.BooleanField(
         default=True,
         verbose_name='Активна',
@@ -112,6 +140,8 @@ class Problem(models.Model):
         indexes = [
             models.Index(fields=['difficulty_score', 'is_active']),
             models.Index(fields=['topic', 'difficulty_score']),
+            models.Index(fields=['grade_level', 'difficulty_score', 'is_active']),
+            models.Index(fields=['is_active', 'times_used']),
         ]
     
     def __str__(self):

@@ -12,15 +12,20 @@ class TopicAdmin(admin.ModelAdmin):
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
     list_display = [
-        'title', 'topic', 'difficulty_score', 'is_active', 'created_at'
+        'title', 'topic', 'difficulty_score', 'grade_level', 
+        'source', 'times_used', 'is_active', 'created_at'
     ]
-    list_filter = ['topic', 'difficulty_score', 'is_active', 'created_at']
+    list_filter = [
+        'topic', 'difficulty_score', 'grade_level', 
+        'source', 'is_active', 'created_at'
+    ]
     search_fields = ['title', 'description', 'latex_formula']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'times_used']
+    actions = ['activate_problems', 'deactivate_problems', 'reset_usage_counter']
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('topic', 'title', 'difficulty_score', 'is_active')
+            'fields': ('topic', 'title', 'difficulty_score', 'grade_level', 'source', 'is_active')
         }),
         ('Содержание задачи', {
             'fields': ('latex_formula', 'description', 'correct_answer')
@@ -28,10 +33,31 @@ class ProblemAdmin(admin.ModelAdmin):
         ('Решение и подсказки', {
             'fields': ('solution_steps', 'hints')
         }),
+        ('Статистика', {
+            'fields': ('times_used',)
+        }),
         ('Даты', {
             'fields': ('created_at', 'updated_at')
         }),
     )
+    
+    def activate_problems(self, request, queryset):
+        """Активировать выбранные задачи"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'Активировано задач: {updated}')
+    activate_problems.short_description = "✅ Активировать выбранные задачи"
+    
+    def deactivate_problems(self, request, queryset):
+        """Деактивировать выбранные задачи"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'Деактивировано задач: {updated}')
+    deactivate_problems.short_description = "❌ Деактивировать выбранные задачи"
+    
+    def reset_usage_counter(self, request, queryset):
+        """Сбросить счетчик использования"""
+        updated = queryset.update(times_used=0)
+        self.message_user(request, f'Сброшен счетчик для {updated} задач')
+    reset_usage_counter.short_description = "🔄 Сбросить счетчик использования"
 
 
 @admin.register(UserAttempt)

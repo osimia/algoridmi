@@ -60,15 +60,25 @@ def parse_database_url(url):
     })
     
     # Дополнительные параметры из query string
+    options = {}
     if parsed.query:
         query_params = parse_qs(parsed.query)
-        options = {}
         
         for key, value in query_params.items():
             # Берем первое значение из списка
             options[key] = value[0] if isinstance(value, list) else value
-        
-        if options:
-            config['OPTIONS'] = options
+    
+    # Добавляем настройки для PostgreSQL для улучшения стабильности
+    if engine == 'django.db.backends.postgresql':
+        options.update({
+            'connect_timeout': 10,  # Таймаут подключения 10 секунд
+            'options': '-c statement_timeout=30000',  # Таймаут запроса 30 секунд
+        })
+    
+    if options:
+        config['OPTIONS'] = options
+    
+    # Добавляем настройки пула соединений
+    config['CONN_MAX_AGE'] = 600  # Держать соединение 10 минут
     
     return config
