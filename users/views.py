@@ -11,6 +11,9 @@ from .serializers import (
     RegisterSerializer, UserSerializer, ProfileSerializer, ProgressSerializer
 )
 from problems.models import UserAttempt, Topic
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
@@ -120,12 +123,20 @@ def get_current_user(request):
     GET /api/user/profile/
     """
     user = request.user
+    logger.info(f"Profile request from user: {user.username}, authenticated: {user.is_authenticated}")
     
-    # Возвращаем структуру, совместимую с login/register
-    return Response({
-        'user': UserSerializer(user).data,
-        'profile': ProfileSerializer(user.profile).data,
-    }, status=status.HTTP_200_OK)
+    try:
+        # Возвращаем структуру, совместимую с login/register
+        return Response({
+            'user': UserSerializer(user).data,
+            'profile': ProfileSerializer(user.profile).data,
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception(f"Error in get_current_user: {str(e)}")
+        return Response({
+            'error': 'Ошибка получения профиля',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):

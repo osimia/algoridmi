@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import ArenaRank
 from .serializers import ArenaRankSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
@@ -19,11 +22,14 @@ def leaderboard(request):
     """
     try:
         user = request.user
+        logger.info(f"Leaderboard request from user: {user.username}, authenticated: {user.is_authenticated}")
+        
         division = request.query_params.get('division')
         limit = int(request.query_params.get('limit', 10))
         
         # Проверяем наличие профиля
         if not hasattr(user, 'profile'):
+            logger.error(f"User {user.username} has no profile")
             return Response({
                 'error': 'Профиль пользователя не найден',
                 'message': 'Пожалуйста, заполните профиль'
@@ -46,6 +52,7 @@ def leaderboard(request):
                 )
                 division = arena_rank.current_division
     except Exception as e:
+        logger.exception(f"Error in leaderboard view: {str(e)}")
         return Response({
             'error': 'Ошибка при получении рейтинга',
             'message': str(e)

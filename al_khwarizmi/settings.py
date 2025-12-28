@@ -15,7 +15,8 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-pro
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# Разрешаем доступ с любых устройств в локальной сети в режиме разработки
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',') if DEBUG else config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -55,9 +56,10 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1209600  # 2 недели
 SESSION_SAVE_EVERY_REQUEST = True  # Сохраняем сессию при каждом запросе
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'  # Lax для работы на мобильных
 SESSION_COOKIE_NAME = 'sessionid'  # Явно указываем имя cookie
-SESSION_COOKIE_SECURE = False  # False для HTTP (в разработке)
+SESSION_COOKIE_SECURE = not DEBUG  # True для HTTPS в продакшене
+SESSION_COOKIE_DOMAIN = None  # Работает для всех доменов
 
 ROOT_URLCONF = 'al_khwarizmi.urls'
 
@@ -219,12 +221,11 @@ for host in ALLOWED_HOSTS:
 
 CSRF_COOKIE_HTTPONLY = False  # Чтобы JavaScript мог читать
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = not DEBUG  # True для HTTPS в продакшене
 
 # Security settings for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
+    X_FRAME_OPTIONS = 'SAMEORIGIN'  # SAMEORIGIN вместо DENY для работы iframe
