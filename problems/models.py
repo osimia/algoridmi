@@ -136,12 +136,13 @@ class Problem(models.Model):
     class Meta:
         verbose_name = 'Задача'
         verbose_name_plural = 'Задачи'
-        ordering = ['difficulty_score', 'topic']
+        ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['difficulty_score', 'is_active']),
+            models.Index(fields=['difficulty_score']),
+            models.Index(fields=['grade_level']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['source']),
             models.Index(fields=['topic', 'difficulty_score']),
-            models.Index(fields=['grade_level', 'difficulty_score', 'is_active']),
-            models.Index(fields=['is_active', 'times_used']),
         ]
     
     def __str__(self):
@@ -215,8 +216,11 @@ class UserAttempt(models.Model):
         indexes = [
             models.Index(fields=['user', '-attempt_date']),
             models.Index(fields=['problem', '-attempt_date']),
+            models.Index(fields=['user', 'is_correct']),
+            models.Index(fields=['user', 'problem']),
         ]
     
     def __str__(self):
         status = "✓" if self.is_correct else "✗"
-        return f"{status} {self.user.username} - {self.problem.title}"
+        problem_title = self.problem.title if self.problem else "AI-задача"
+        return f"{status} {self.user.username} - {problem_title}"

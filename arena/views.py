@@ -17,26 +17,39 @@ def leaderboard(request):
     - division: Дивизион (NOVICE, EUCLID, EINSTEIN) - опционально
     - limit: Количество записей (по умолчанию 10)
     """
-    user = request.user
-    division = request.query_params.get('division')
-    limit = int(request.query_params.get('limit', 10))
-    
-    # Если дивизион не указан, используем дивизион текущего пользователя
-    if not division:
-        if hasattr(user, 'arena_rank'):
-            division = user.arena_rank.current_division
-        else:
-            # Создаем запись в арене для пользователя, если её нет
-            arena_rank, created = ArenaRank.objects.get_or_create(
-                user=user,
-                defaults={
-                    'current_index': user.profile.al_khwarizmi_index,
-                    'current_division': ArenaRank.get_division_from_index(
-                        user.profile.al_khwarizmi_index
-                    )
-                }
-            )
-            division = arena_rank.current_division
+    try:
+        user = request.user
+        division = request.query_params.get('division')
+        limit = int(request.query_params.get('limit', 10))
+        
+        # Проверяем наличие профиля
+        if not hasattr(user, 'profile'):
+            return Response({
+                'error': 'Профиль пользователя не найден',
+                'message': 'Пожалуйста, заполните профиль'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Если дивизион не указан, используем дивизион текущего пользователя
+        if not division:
+            if hasattr(user, 'arena_rank'):
+                division = user.arena_rank.current_division
+            else:
+                # Создаем запись в арене для пользователя, если её нет
+                arena_rank, created = ArenaRank.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'current_index': user.profile.al_khwarizmi_index,
+                        'current_division': ArenaRank.get_division_from_index(
+                            user.profile.al_khwarizmi_index
+                        )
+                    }
+                )
+                division = arena_rank.current_division
+    except Exception as e:
+        return Response({
+            'error': 'Ошибка при получении рейтинга',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     # Получаем топ игроков дивизиона (сортировка по очкам, затем по индексу)
     leaderboard_query = ArenaRank.objects.filter(

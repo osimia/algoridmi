@@ -147,36 +147,40 @@ def progress_view(request):
     Получение прогресса пользователя по темам.
     GET /api/user/progress/
     Включает статистику по обычным задачам и AI-генерируемым задачам.
+    ОПТИМИЗИРОВАНО: использует агрегацию вместо циклов.
     """
     user = request.user
     
-    # Получаем статистику по каждой теме
-    topics = Topic.objects.all()
+    # ОПТИМИЗАЦИЯ: Получаем статистику одним запросом с агрегацией
+    from django.db.models import Case, When, FloatField
+    
+    topics_stats = Topic.objects.annotate(
+        total_attempts=Count(
+            'problem__userattempt',
+            filter=Q(problem__userattempt__user=user)
+        ),
+        correct_attempts=Count(
+            'problem__userattempt',
+            filter=Q(problem__userattempt__user=user, problem__userattempt__is_correct=True)
+        ),
+        avg_difficulty=Avg(
+            'problem__difficulty_score',
+            filter=Q(problem__userattempt__user=user)
+        )
+    ).filter(total_attempts__gt=0)
+    
     progress_data = []
     
-    for topic in topics:
-        # Фильтруем попытки по теме (включая AI-задачи)
-        attempts = UserAttempt.objects.filter(
-            user=user,
-            problem__topic=topic
-        )
+    for topic in topics_stats:
+        success_rate = (topic.correct_attempts / topic.total_attempts * 100) if topic.total_attempts > 0 else 0
         
-        total_attempts = attempts.count()
-        
-        if total_attempts > 0:
-            correct_attempts = attempts.filter(is_correct=True).count()
-            success_rate = (correct_attempts / total_attempts) * 100
-            avg_difficulty = attempts.aggregate(
-                avg=Avg('problem__difficulty_score')
-            )['avg'] or 0
-            
-            progress_data.append({
-                'topic_name': topic.name,
-                'total_attempts': total_attempts,
-                'correct_attempts': correct_attempts,
-                'success_rate': round(success_rate, 1),
-                'average_difficulty': round(avg_difficulty, 1)
-            })
+        progress_data.append({
+            'topic_name': topic.name,
+            'total_attempts': topic.total_attempts,
+            'correct_attempts': topic.correct_attempts,
+            'success_rate': round(success_rate, 1),
+            'average_difficulty': round(topic.avg_difficulty or 0, 1)
+        })
     
     # Добавляем статистику по AI-генерируемым задачам (где problem=None)
     ai_attempts = UserAttempt.objects.filter(

@@ -42,12 +42,19 @@ def generate_problem(request):
     # Фильтр по теме (опционально)
     topic_id = request.query_params.get('topic_id')
     
-    # Базовый запрос
+    # Получаем ID задач, которые пользователь уже ПРАВИЛЬНО решил
+    # Не показываем повторно только правильно решенные задачи
+    solved_problem_ids = UserAttempt.objects.filter(
+        user=user,
+        is_correct=True  # Только правильно решенные
+    ).values_list('problem_id', flat=True).distinct()
+    
+    # Базовый запрос - исключаем уже решенные задачи
     problems_query = Problem.objects.filter(
         is_active=True,
         difficulty_score__gte=min_difficulty,
         difficulty_score__lte=max_difficulty
-    )
+    ).exclude(id__in=solved_problem_ids)
     
     if topic_id:
         problems_query = problems_query.filter(topic_id=topic_id)
@@ -55,8 +62,23 @@ def generate_problem(request):
     # Получаем список задач
     problems = list(problems_query)
     
+    # Если нет новых задач, показываем все подходящие (включая решенные)
     if not problems:
-        # Если нет подходящих задач, расширяем диапазон
+        problems_query = Problem.objects.filter(
+            is_active=True,
+            difficulty_score__gte=min_difficulty,
+            difficulty_score__lte=max_difficulty
+        )
+        if topic_id:
+            problems_query = problems_query.filter(topic_id=topic_id)
+        problems = list(problems_query)
+    
+    # Если все еще нет задач, расширяем диапазон
+    if not problems:
+        problems = list(Problem.objects.filter(is_active=True).exclude(id__in=solved_problem_ids))
+    
+    # Если и это не помогло, показываем любые задачи
+    if not problems:
         problems = list(Problem.objects.filter(is_active=True))
     
     if not problems:
